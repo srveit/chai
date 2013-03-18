@@ -1652,6 +1652,24 @@
         new Assertion(val, msg).is.ok;
       };
 
+
+      /**
+       * # .notExist(value, [message])
+       *
+       * Assert `value` is null or undefined.
+       *
+       *      assert.notExist(err, 'no errors');
+       *
+       * @name notExist
+       * @param {*} value
+       * @param {String} message
+       * @api public
+       */
+
+      assert.notExist = function (val, msg) {
+        new Assertion(val, msg).to.not.exist;
+      };
+
       /**
        * ### .equal(actual, expected, [message])
        *
@@ -1669,13 +1687,14 @@
       assert.equal = function (act, exp, msg) {
         var test = new Assertion(act, msg);
 
-        test.assert(
-            exp == flag(test, 'object')
-          , 'expected #{this} to equal #{exp}'
-          , 'expected #{this} to not equal #{act}'
-          , exp
-          , act
-        );
+        assert.fail(act, exp, 'assert.equal not allowed. original message: ' + msg);
+        // test.assert(
+        //     exp == flag(test, 'object')
+        //   , 'expected #{this} to equal #{exp}'
+        //   , 'expected #{this} to not equal #{act}'
+        //   , exp
+        //   , act
+        // );
       };
 
       /**
@@ -1695,13 +1714,14 @@
       assert.notEqual = function (act, exp, msg) {
         var test = new Assertion(act, msg);
 
-        test.assert(
-            exp != flag(test, 'object')
-          , 'expected #{this} to not equal #{exp}'
-          , 'expected #{this} to equal #{act}'
-          , exp
-          , act
-        );
+        assert.fail(act, exp, 'assert.notEqual not allowed. original message: ' + msg);
+        // test.assert(
+        //     exp != flag(test, 'object')
+        //   , 'expected #{this} to not equal #{exp}'
+        //   , 'expected #{this} to equal #{act}'
+        //   , exp
+        //   , act
+        // );
       };
 
       /**
@@ -2678,6 +2698,10 @@
     // and there seems no easy cross-platform way to detect them (@see chaijs/chai/issues/69).
     var excludeNames = /^(?:length|name|arguments|caller)$/;
 
+    // Cache `Function` properties
+    var call  = Function.prototype.call,
+        apply = Function.prototype.apply;
+
     /**
      * ### addChainableMethod (ctx, name, method, chainingBehavior)
      *
@@ -2721,7 +2745,11 @@
 
             // Use `__proto__` if available
             if (hasProtoSupport) {
-              assert.__proto__ = this;
+              // Inherit all properties from the object by replacing the `Function` prototype
+              var prototype = assert.__proto__ = Object.create(this);
+              // Restore the `call` and `apply` methods from `Function`
+              prototype.call = call;
+              prototype.apply = apply;
             }
             // Otherwise, redefine all properties (slow!)
             else {
